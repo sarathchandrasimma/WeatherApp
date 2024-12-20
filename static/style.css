@@ -98,6 +98,7 @@ input, .btn::placeholder {
   gap: 10px;
   justify-content: center;
   margin-top: 2rem;
+  text-decoration: none;
 }
 
 .ad {
@@ -105,6 +106,7 @@ input, .btn::placeholder {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  text-decoration: none;
 }
 
 .ad img {
@@ -122,6 +124,7 @@ footer {
   text-align: center;
   background: rgba(255, 255, 255, 0.7);
   padding: 10px 0;
+  text-decoration: none;
 }
 
 .social-links {

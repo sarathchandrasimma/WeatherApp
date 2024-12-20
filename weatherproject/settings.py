@@ -125,7 +125,7 @@ STATICFILES_DIRS = [
 # settings.py
 
 # Other settings...
-from decouple import config
+# from decouple import config
 
-WEATHER_API_KEY = config('WEATHER_API_KEY')
-UNSPLASH_ACCESS_KEY = config('UNSPLASH_ACCESS_KEY')
+WEATHER_API_KEY = 'cf5f4133868fbde59cdd92a295f33f4b'
+UNSPLASH_ACCESS_KEY = 'DXm0k47uqZAYlpeGOtFFx49AJ65bVuVYfa8sTytYi9U'
