@@ -1,140 +1,52 @@
-from django.shortcuts import render
-from django.contrib import messages
-from django.conf import settings
-import requests
-import datetime
-import random
-# import tensorflow as tf
+import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 import numpy as np
-from django.core.files.storage import FileSystemStorage
-from django.shortcuts import redirect
 
+# Define the possible weather conditions (e.g., Sunny, Rainy, Cloudy)
 weather_conditions = ['Sunny', 'Rainy', 'Cloudy', 'Foggy', 'Windy', 'Snowy']
 
 # Load a pre-trained model such as ResNet50 (already trained on ImageNet)
-# def load_weather_model():
-#     try:
-#         # Load the pre-trained ResNet50 model from Keras (without top layers)
-#         model = tf.keras.applications.ResNet50(weights='imagenet', include_top=True)
-#         print("Weather model loaded successfully.")
-#         return model
-#     except Exception as e:
-#         print(f"Error loading model: {e}")
-#         return None
+def load_weather_model():
+    try:
+        # Load the pre-trained ResNet50 model from Keras (without top layers)
+        model = tf.keras.applications.ResNet50(weights='imagenet', include_top=True)
+        print("Weather model loaded successfully.")
+        return model
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return None
 
 # Function to predict the weather from the uploaded image
-# streak = 0
-
-# Function to simulate a random weather condition prediction
-def predict_weather_random():
-    return random.choice(weather_conditions)
-
-def get_random_image(query):
-    unsplash_url = f"https://api.unsplash.com/photos/random?query={query}&client_id={settings.UNSPLASH_ACCESS_KEY}"
-    response = requests.get(unsplash_url)
-    data = response.json()
-    return data['urls']['regular'] if 'urls' in data else ""
-
-def weather_game(request):
-    global streak  # Access the global streak variable
-
-    # Check if it's a POST request and process the form data
-    if request.method == 'POST':
-        if 'weather_condition' in request.POST and 'weather_image' in request.FILES:
-            weather_condition = request.POST['weather_condition']
-            uploaded_file = request.FILES['weather_image']
-
-            # Save the uploaded image using Django's FileSystemStorage
-            fs = FileSystemStorage()
-            file_path = fs.save(uploaded_file.name, uploaded_file)
-            file_url = fs.url(file_path)
-
-            # Simulate weather prediction with a random choice
-            predicted_condition = predict_weather_random()
-
-            # Check if the prediction matches the user's input
-            if predicted_condition.lower() == weather_condition.lower():
-                result_message = "Congratulations! Your prediction was correct! 🎉"
-                streak += 1  # Increase streak on correct prediction
-                celebration = True
-            else:
-                result_message = f"Oops! The system predicted '{predicted_condition}', but your guess was '{weather_condition}'. Better luck next time!"
-                if streak > 0:
-                    streak -= 1  # Decrease streak on loss (but not below 0)
-                celebration = False
-
-            # Delete the uploaded file after processing (optional)
-            fs.delete(file_path)
-
-            context = {
-                'result_message': result_message,
-                'celebration': celebration,
-                'streak': streak,  # Display streak
-            }
-
-            return render(request, 'weatherapp/weather_game.html', context)  # Re-render with updated context
-
-    # Render the page with no context if it's not a POST request
-    return render(request, 'weatherapp/weather_game.html')
-
-
-    # return redirect('home')
-def home(request):
-    if 'city' in request.POST:
-        city = request.POST['city']
-    else:
-        city = 'Srikakulam'
-
-    weather_url = f'https://api.openweathermap.org/data/2.5/weather?q={city}&appid={settings.WEATHER_API_KEY}'
-    weather_params = {'units': 'metric'}
-
-    unsplash_access_key = 'DXm0k47uqZAYlpeGOtFFx49AJ65bVuVYfa8sTytYi9U'
-
-    query = f"{city} landscape"
-    image_url = None
-# Handle the weather prediction game
-    if 'weather_condition' in request.POST and 'weather_image' in request.FILES:
-        uploaded_file = request.FILES['weather_image']
-        weather_condition = request.POST['weather_condition']
-
-            # Save the uploaded image temporarily
-        fs = FileSystemStorage()
-        file_path = fs.save(uploaded_file.name, uploaded_file)
-        file_url = fs.url(file_path)
-
-        #     # Predict weather using the ML model
-        # predicted_condition = predict_weather_random()
-        # if predicted_condition.lower() == weather_condition.lower():
-        #     context['game_result'] = "Congratulations! Your prediction was correct!"
-        #     context['celebration'] = True  # Trigger celebratory visuals
-        # else:
-        #     context['game_result'] = f"Sorry, the prediction was '{predicted_condition}', not '{weather_condition}'. Better luck next time!"
-        #     context['celebration'] = False
-        # fs.delete(file_path)  # Clean up uploaded file after processing
+def predict_weather_from_image(image_path):
+    model = load_weather_model()
+    if model is None:
+        return "Model could not be loaded"
     
-    try:
-        unsplash_search_url = f"https://api.unsplash.com/search/photos?query={query}&client_id={settings.UNSPLASH_ACCESS_KEY}&orientation=landscape&per_page=30"
-        image_data = requests.get(unsplash_search_url).json()
-        # image_data = requests.get(unsplash_search_url).json()
-        results = image_data.get('results')
-        if results:
-            image_url = random.choice(results)['urls']['regular']
-        else:
-            image_url = 'https://images.pexels.com/photos/3008509/pexels-photo-3008509.jpeg?auto=compress&cs=tinysrgb&w=1600'
-    except Exception as e:
-        print(f"Image fetch error: {e}")
-        image_url = 'https://images.pexels.com/photos/3008509/pexels-photo-3008509.jpeg?auto=compress&cs=tinysrgb&w=1600'
+    # Load and preprocess the uploaded image (resize to 224x224 for ResNet50)
+    img = image.load_img(image_path, target_size=(224, 224))  # Image size for ResNet50
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+    img_array /= 255.0  # Normalize image data for ResNet50
+    
+    # Predict the weather condition using the model
+    predictions = model.predict(img_array)
+    
+    # Decode predictions using ImageNet class labels (can be mapped to weather categories manually)
+    decoded_predictions = tf.keras.applications.resnet50.decode_predictions(predictions, top=3)[0]
+    
+    # Since ResNet50 is not specifically trained on weather, manually map predictions to weather categories
+    # Example: match predictions based on general object categories like 'cloud', 'sun', etc.
+    predicted_class = decoded_predictions[0][1]  # Get the predicted class label
+    
+    return f"Predicted weather condition: {predicted_class}"
 
-    try:
-        weather_data = requests.get(weather_url, params=weather_params).json()
-        description = weather_data['weather'][0]['description']
-        icon = weather_data['weather'][0]['icon']
-        temp = weather_data['main']['temp']
-        day = datetime.date.today()
+# Example usage
+image_path = "D:\django projects\weather images\rainy.jpeg"
+weather_prediction = predict_weather_from_image(image_path)
+print(weather_prediction)
 
-        # Affiliate links based on weather condition
-        affiliate_links = []
+
+ affiliate_links = []
         if 'rain' in description.lower():
             affiliate_links = [
                 {'title': 'Buy an Umbrella', 'url': 'https://www.amazon.in/Rylan-Automatic-Umbrellas-Windproof-Umberalla/dp/B0D17WJLLH?tag=sarath04c-21', 'image': 'https://m.media-amazon.com/images/I/41ka57bJK4L.jpg'},
@@ -241,30 +153,3 @@ def home(request):
             affiliate_links = [
                 {'title': 'Make some moonlight dinner with your Love!! ,Grab an interestind Moon lamp', 'url': 'https://www.amazon.in/REFULGIX-3D-Moon-Rechargeable-Lamp/dp/B09NRBHC8C?crid=I3LLS1C75DEO&dib=eyJ2IjoiMSJ9.XhmGN61bn8BMYR9H0V7VOfBMlvZbIa4G4T64jbXlGF6LgZzLur3E9LzRnEzmMopk1dm6YeTPD602UrLP6Ux4Sf_T45Tx0JMG4jBRC8whu1Qjd1jkQOVRNf5J2yTo4I8eGxh7VrcFpiXh7PuAXnuZqQomfvOLYysHq1Xf5Te5HCoqPCNc5hsYRGYOTkTGanMe-ZrW6YNEkk_yLIg9lFS2R08QQcwKm_1PDn9q_0R3qM_tcFYGvHZdQcHo8A9JMcNjIiCqzZhctFZz_iOmtHp8LCNNkf2rFSMCKBJxQu8SfQg.Sq8DbaU1FwEXS1rUdcyoNNeevuRkvlvzmWV5g42sk_o&dib_tag=se&keywords=moon+lamp&qid=1716880330&sprefix=moon+lamp%2Caps%2C382&sr=8-6&linkCode=ll1&tag=sarath04c-21&linkId=a18a389e72c668d2d035d7beef80fa04&language=en_IN&ref_=as_li_ss_tl', 'image': get_random_image('moon lamp')}
             ]
-
-        return render(request, 'weatherapp/index.html', {
-            'description': description,
-            'icon': icon,
-            'temp': temp,
-            'day': day,
-            'city': city,
-            'exception_occurred': False,
-            'image_url': image_url,
-            'affiliate_links': affiliate_links
-        })
-    
-    except KeyError:
-        exception_occurred = True
-        messages.error(request, 'City information is not available from the Weather API')
-        day = datetime.date.today()
-
-        return render(request, 'weatherapp/index.html', {
-            'description': 'clear sky',
-            'icon': '01d',
-            'temp': 25,
-            'day': day,
-            'city': 'Srikakulam',
-            'exception_occurred': exception_occurred,
-            'image_url': image_url,
-            'affiliate_links': []
-        })

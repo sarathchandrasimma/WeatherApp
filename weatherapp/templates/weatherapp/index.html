@@ -11,6 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap"
       rel="stylesheet"
     />
+    <link rel=icon href=https://cdn3.iconfinder.com/data/icons/weather-ios-11-1/50/Scattered_Thunderstorm_Thunderstorm_Lightning_Storm_Apple_iOS_Flat_Weather-512.png height=50% />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
@@ -55,6 +56,34 @@
           </div>
         </div>
       </div>
+      <div class="game-card">
+        <h3>Weather Prediction Game</h3>
+        <form method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+          <label for="weather_image">Upload an image:</label>
+          <input type="file" name="weather_image" id="weather_image" required />
+          <label for="weather_condition">Your prediction:</label>
+          <input
+            type="text"
+            name="weather_condition"
+            id="weather_condition"
+            placeholder="e.g., sunny"
+            required
+          />
+          <button type="submit">Submit</button>
+        </form>
+        {% if game_result %}
+        <div class="result">
+          <p>{{ game_result }}</p>
+          {% if celebration %}
+          <div class="celebration">
+            <!-- Add celebratory animation effects here -->
+            🎉🎊✨
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
 
       <div class="ads">
         {% for ad in affiliate_links %}
@@ -82,7 +111,7 @@
     {% endif %}
 
     <footer>
-      <p>@ Developed by S.SARATHCHANDRA</p>
+      <p>@ Developed by Team Tsunamis</p>
       <div class="social-links">
         <a href="https://www.instagram.com/s_sarath_c/" target="_blank"
           ><i class="fab fa-instagram"></i
